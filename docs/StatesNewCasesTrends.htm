@@ -80,7 +80,7 @@
                 var myPlot = document.getElementById('rankOrder'),
                     data = [ trace1 ],
                     layout = {
-                        title:"States' Daily Cases 'Least Squares Fit' Trend, Best Decline to Worst Growth of New Cases<br>",
+                        title:"States' \"Least Squares Fit\" Trends, Best Decline to Worst Growth of New Daily Positive Cases<br>",
                         margin: {t:50, b:20, l:50},
                         height: 200,
                         width: 1600
@@ -106,9 +106,9 @@
                 dotPlot(stats[3].state, "plot4");
                 dotPlot(stats[4].state, "plot5");
 
-                note = '<font color="red"><b>Click along the line above to center the graphs below on the selected State</font></b><p>';
+                note = '<font color="red"><b>Click along the line above to center the graphs below on the selected State and nearest statistical neighbors.</font></b><p>';
                 note = note + "States are ordered by the normalized slope of the trend line for their daily new positive cases. ";
-                note = note + "The y-axis shows the trend linear change in positive cases for the period divided by each State's cumulative number of tests [pos and neg] over the period.<br>";
+                note = note + "The y-axis shows the trend linear change in positive cases over the period divided by each State's cumulative number of all [pos + neg] tests over the period.<br>";
                 note = note + "The actual linear slope [daily rise/fall] appears as a tool tip.  No conclusions can be drawn about untested individuals, so State population is not relevant.<br>";
                 document.getElementById("notes1").innerHTML = note;
 
@@ -147,7 +147,7 @@
 
                 layout = {
                     xaxis: {type: "category" },
-                    title: `${state}, new cases per day`,
+                    title: `${state}, new positive tests / day`,
                     showlegend: false,
                     margin: {t:50, b:50, l:50, r:0},
 //                    autosize: false,
@@ -168,7 +168,7 @@
             <td><div id='plot3'></div>
             <td><div id='plot4'></div>
             <td><div id='plot5'></div>
-                        </tr></table>
+        </tr></table>
     <script>
     </script>
     </body>
