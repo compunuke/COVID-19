@@ -13,10 +13,10 @@
             hist_days = 14;
 
 //            data = $.getJSON("./daily.json", function (inFile) {
-            data = $.getJSON("https://covidtracking.com/api/v1/states/daily.json", function (inFile) {
+            data = $.getJSON("https://covidtracking.com/api/v1/states/daily.json").then (function (inFile) {
                 data = inFile;
                 data.forEach(obj => {
-                    if (!['AS', 'GU', 'MH', 'MP', 'VI'].includes(obj.state)) {
+                    if (!['AS', 'GU', 'MH', 'MP', 'VI', 'PR'].includes(obj.state)) {
                         if (!Object.keys(states).includes(obj.state)) {
                             states[obj.state] = [];
                         }
@@ -27,7 +27,9 @@
                 process( states );
             });
 
+
             function process( states ) {
+                stats = [];
                 Object.keys(states).forEach(state => {
                     if (states[state].length >= hist_days) {
                         sum_x = sum_x2 = sum_y = sum_tri = sum_xy = 0;
@@ -110,6 +112,7 @@
                 note = note + "States are ordered by the normalized slope of the trend line for their daily new positive cases. ";
                 note = note + "The y-axis shows the trend linear change in positive cases over the period divided by each State's cumulative number of all [pos + neg] tests over the period.<br>";
                 note = note + "The actual linear slope [daily rise/fall] appears as a tool tip.  No conclusions can be drawn about untested individuals, so State population is not relevant.<br>";
+                //delay showing the note until the graphs appear
                 document.getElementById("notes1").innerHTML = note;
 
             }
@@ -157,9 +160,21 @@
 
                 Plotly.newPlot(plot, data, layout);
             }
+            function setDays() {
+                if (document.getElementById("hist_days").innerText == "last 30 days") {
+                    document.getElementById("hist_days").innerText = "last 14 days";
+                    hist_days = 30;
+                    process( states );
+                } else {
+                    document.getElementById("hist_days").innerText = "last 30 days";
+                    hist_days = 14;
+                    process( states );
+                };
+            }
         </script>
     </head>
     <body>
+        Show <button id = "hist_days" onClick="setDays()">last 30 days</button>
         <div id="rankOrder"></div><br>
         <div id = "notes1"></div>
         <table><tr>
