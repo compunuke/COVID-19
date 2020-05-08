@@ -9,7 +9,7 @@
             var states = {};
             var stats = [];
             var abbrevs = { "AL": "Alabama", "AK": "Alaska", "AS": "American Samoa", "AZ": "Arizona", "AR": "Arkansas", "CA": "California", "CO": "Colorado", "CT": "Connecticut", "DE": "Delaware", "DC": "District Of Columbia", "FM": "Federated States Of Micronesia", "FL": "Florida", "GA": "Georgia", "GU": "Guam", "HI": "Hawaii", "ID": "Idaho", "IL": "Illinois", "IN": "Indiana", "IA": "Iowa", "KS": "Kansas", "KY": "Kentucky", "LA": "Louisiana", "ME": "Maine", "MH": "Marshall Islands", "MD": "Maryland", "MA": "Massachusetts", "MI": "Michigan", "MN": "Minnesota", "MS": "Mississippi", "MO": "Missouri", "MT": "Montana", "NE": "Nebraska", "NV": "Nevada", "NH": "New Hampshire", "NJ": "New Jersey", "NM": "New Mexico", "NY": "New York", "NC": "North Carolina", "ND": "North Dakota", "MP": "Northern Mariana Islands", "OH": "Ohio", "OK": "Oklahoma", "OR": "Oregon", "PW": "Palau", "PA": "Pennsylvania", "PR": "Puerto Rico", "RI": "Rhode Island", "SC": "South Carolina", "SD": "South Dakota", "TN": "Tennessee", "TX": "Texas", "UT": "Utah", "VT": "Vermont", "VI": "Virgin Islands", "VA": "Virginia", "VI": "Virgin Islands", "WA": "Washington", "WV": "West Virginia", "WI": "Wisconsin", "WY": "Wyoming"};
-            sum_x = sum_x2 = sum_y = sum_xy = 0;
+            sum_x = sum_x2 = sum_y = sum_xy = curState = 0;
             hist_days = 14;
 
 //            data = $.getJSON("./daily.json", function (inFile) {
@@ -100,6 +100,7 @@
                     dotPlot(stats[i].state,     "plot3");
                     dotPlot(stats[i + 1].state, "plot4");
                     dotPlot(stats[i + 2].state, "plot5");
+                    curState = i;
                 });
 
                 dotPlot(stats[0].state, "plot1");
@@ -107,6 +108,7 @@
                 dotPlot(stats[2].state, "plot3");
                 dotPlot(stats[3].state, "plot4");
                 dotPlot(stats[4].state, "plot5");
+                curState = 2;
 
                 note = '<font color="red"><b>Click along the line above to center the graphs below on the selected State and nearest statistical neighbors.</font></b><p>';
                 note = note + "States are ordered by the normalized slope of the trend line for their daily new positive cases. ";
@@ -171,6 +173,21 @@
                     process( states );
                 };
             }
+            function slider(dir) {
+                if (dir == "left") {
+                    curState = curState - 5;
+                    if (curState < 2) {curState = 2}
+                } else {
+                    curState = curState + 5;
+                    if (curState > stats.length -3) {curState = stats.length -3}
+                }
+                i = curState;
+                dotPlot(stats[i - 2].state, "plot1");
+                dotPlot(stats[i - 1].state, "plot2");
+                dotPlot(stats[i].state,     "plot3");
+                dotPlot(stats[i + 1].state, "plot4");
+                dotPlot(stats[i + 2].state, "plot5");
+            }
         </script>
     </head>
     <body>
@@ -178,12 +195,14 @@
         <div id="rankOrder"></div><br>
         <div id = "notes1"></div>
         <table><tr>
+            <td><img src="LeftArrow.png" width="20" onClick="slider('left')"><br>Left 5</td>
             <td><div id='plot1'></div>
             <td><div id='plot2'></div>
             <td><div id='plot3'></div>
             <td><div id='plot4'></div>
             <td><div id='plot5'></div>
-        </tr></table>
+            <td><img src="RightArrow.png" width="20" onClick="slider('right')"><br>Right 5</td>
+            </tr></table>
     <script>
     </script>
     </body>
