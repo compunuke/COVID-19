@@ -11,10 +11,8 @@
             var stats = [];
             var abbrevs = { "AL": "Alabama", "AK": "Alaska", "AS": "American Samoa", "AZ": "Arizona", "AR": "Arkansas", "CA": "California", "CO": "Colorado", "CT": "Connecticut", "DE": "Delaware", "DC": "District Of Columbia", "FM": "Federated States Of Micronesia", "FL": "Florida", "GA": "Georgia", "GU": "Guam", "HI": "Hawaii", "ID": "Idaho", "IL": "Illinois", "IN": "Indiana", "IA": "Iowa", "KS": "Kansas", "KY": "Kentucky", "LA": "Louisiana", "ME": "Maine", "MH": "Marshall Islands", "MD": "Maryland", "MA": "Massachusetts", "MI": "Michigan", "MN": "Minnesota", "MS": "Mississippi", "MO": "Missouri", "MT": "Montana", "NE": "Nebraska", "NV": "Nevada", "NH": "New Hampshire", "NJ": "New Jersey", "NM": "New Mexico", "NY": "New York", "NC": "North Carolina", "ND": "North Dakota", "MP": "Northern Mariana Islands", "OH": "Ohio", "OK": "Oklahoma", "OR": "Oregon", "PW": "Palau", "PA": "Pennsylvania", "PR": "Puerto Rico", "RI": "Rhode Island", "SC": "South Carolina", "SD": "South Dakota", "TN": "Tennessee", "TX": "Texas", "UT": "Utah", "VT": "Vermont", "VI": "Virgin Islands", "VA": "Virginia", "VI": "Virgin Islands", "WA": "Washington", "WV": "West Virginia", "WI": "Wisconsin", "WY": "Wyoming"};
             var sum_x = sum_x2 = sum_y = sum_xy = curState = 0;
+            var width = plotWidth = 0;
             var hist_days = 14;
-            var width = window.innerWidth;
-            var plotWidth = (width - 150) / 5; // 150 pixels for left/right arrows on each end and space between plots
-            if (plotWidth < 150) {plotWidth = 150}; // set min plot width
 
 //            data = $.getJSON("./daily.json", function (inFile) {
             data = $.getJSON("https://covidtracking.com/api/v1/states/daily.json").then (function (inFile) {
@@ -68,6 +66,11 @@
                 var trace1 = {};
                 var trace2 = {};
                 var layout = {};
+                
+                width = window.innerWidth;
+                plotWidth = (width - 150) / 5; // 150 pixels for left/right arrows on each end and space between plots
+                if (plotWidth < 150) {plotWidth = 150}; // set min plot width
+
                 //sort states by slope_pct, lowest to highest slope
                 stats.sort(function(a, b){return a.slope_pct - b.slope_pct});
 
@@ -153,7 +156,7 @@
 
                 layout = {
                     xaxis: {type: "category" },
-                    title: `${state}, new positive tests / day`,
+                    title: `${state}`,
                     showlegend: false,
                     margin: {t:50, b:50, l:50, r:0},
 //                    autosize: false,
@@ -189,9 +192,17 @@
                     dotPlot(stats[i + 1].state, stats[i + 1].slope, "plot4");
                     dotPlot(stats[i + 2].state, stats[i + 2].slope, "plot5");
             }
+            function adjustGraphs() {
+                graph();
+                dotPlot(stats[curState - 2].state, stats[curState - 2].slope, "plot1");
+                dotPlot(stats[curState - 1].state, stats[curState - 1].slope, "plot2");
+                dotPlot(stats[curState].state, stats[curState].slope,         "plot3");
+                dotPlot(stats[curState + 1].state, stats[curState + 1].slope, "plot4");
+                dotPlot(stats[curState + 2].state, stats[curState + 2].slope, "plot5");
+            }
         </script>
     </head>
-    <body>
+    <body onresize="adjustGraphs()">
         <div id="all" style="display: none">
             Show <button id = "hist_days" onClick="setDays()">last 30 days</button> 
             <div id="rankOrder"></div><br>
@@ -202,14 +213,16 @@
                 The actual linear slope [daily rise/fall] appears as a tool tip.  No conclusions can be drawn about untested individuals, so State population is not relevant.<br>
                 Note that the number of positive tests / day is strongly influenced by the number of all tests reported / day.
             </div>
-            <table id="slider"><tr>
-                <td><img src="LeftArrow.png" width="20" onClick="slider('left')"><br>Left 5</td>
-                <td><div id='plot1'></div>
-                <td><div id='plot2'></div>
-                <td><div id='plot3'></div>
-                <td><div id='plot4'></div>
-                <td><div id='plot5'></div>
-                <td><img src="RightArrow.png" width="20" onClick="slider('right')"><br>Right 5</td>
+            <table id="slider">
+                <tr><td colspan="7" style="text-align: center"><b>New Positive Tests / Day</b></td></tr>
+                <tr>
+                    <td><img src="LeftArrow.png" width="20" onClick="slider('left')"><br>Left 5</td>
+                    <td><div id='plot1'></div>
+                    <td><div id='plot2'></div>
+                    <td><div id='plot3'></div>
+                    <td><div id='plot4'></div>
+                    <td><div id='plot5'></div>
+                    <td><img src="RightArrow.png" width="20" onClick="slider('right')"><br>Right 5</td>
                 </tr>
             </table>
             <p>Data shown are from: <a href="https://covidtracking.com">https://covidtracking.com</a></p>
