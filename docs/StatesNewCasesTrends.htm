@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
     <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <script type="text/javascript" src="https://code.jquery.com/jquery-1.7.2.min.js"></script>
         <script src='https://cdn.plot.ly/plotly-latest.min.js'></script>
         <script>
@@ -9,8 +10,11 @@
             var states = {};
             var stats = [];
             var abbrevs = { "AL": "Alabama", "AK": "Alaska", "AS": "American Samoa", "AZ": "Arizona", "AR": "Arkansas", "CA": "California", "CO": "Colorado", "CT": "Connecticut", "DE": "Delaware", "DC": "District Of Columbia", "FM": "Federated States Of Micronesia", "FL": "Florida", "GA": "Georgia", "GU": "Guam", "HI": "Hawaii", "ID": "Idaho", "IL": "Illinois", "IN": "Indiana", "IA": "Iowa", "KS": "Kansas", "KY": "Kentucky", "LA": "Louisiana", "ME": "Maine", "MH": "Marshall Islands", "MD": "Maryland", "MA": "Massachusetts", "MI": "Michigan", "MN": "Minnesota", "MS": "Mississippi", "MO": "Missouri", "MT": "Montana", "NE": "Nebraska", "NV": "Nevada", "NH": "New Hampshire", "NJ": "New Jersey", "NM": "New Mexico", "NY": "New York", "NC": "North Carolina", "ND": "North Dakota", "MP": "Northern Mariana Islands", "OH": "Ohio", "OK": "Oklahoma", "OR": "Oregon", "PW": "Palau", "PA": "Pennsylvania", "PR": "Puerto Rico", "RI": "Rhode Island", "SC": "South Carolina", "SD": "South Dakota", "TN": "Tennessee", "TX": "Texas", "UT": "Utah", "VT": "Vermont", "VI": "Virgin Islands", "VA": "Virginia", "VI": "Virgin Islands", "WA": "Washington", "WV": "West Virginia", "WI": "Wisconsin", "WY": "Wyoming"};
-            sum_x = sum_x2 = sum_y = sum_xy = curState = 0;
-            hist_days = 14;
+            var sum_x = sum_x2 = sum_y = sum_xy = curState = 0;
+            var hist_days = 14;
+            var width = window.innerWidth;
+            var plotWidth = (width - 150) / 5; // 150 pixels for left/right arrows on each end and space between plots
+            if (plotWidth < 150) {plotWidth = 150}; // set min plot width
 
 //            data = $.getJSON("./daily.json", function (inFile) {
             data = $.getJSON("https://covidtracking.com/api/v1/states/daily.json").then (function (inFile) {
@@ -82,10 +86,10 @@
                 var myPlot = document.getElementById('rankOrder'),
                     data = [ trace1 ],
                     layout = {
-                        title:"States' \"Least Squares Fit\" Trends, Best Decline to Worst Growth of New Daily Positive Cases<br>",
-                        margin: {t:50, b:20, l:50},
+                        title:"United States' \"Least Squares Fit\" Trends,<br>Best Decline to Worst Growth of New Daily Positive Cases",
+                        margin: {t:50, b:50, l:50},
                         height: 200,
-                        width: 1600
+                        width: window.innerWidth
                     };
 
                 Plotly.newPlot('rankOrder', data, layout);
@@ -95,34 +99,30 @@
                     while (stats[i].state != state) {i++}; //find the state choice
                     if (i > stats.length - 3) {i = stats.length - 3}; //don't have two states to the right of choice
                     if (i < 2) {i = 2}; //put chosen state in the middle unless state was left most
-                    dotPlot(stats[i - 2].state, "plot1");
-                    dotPlot(stats[i - 1].state, "plot2");
-                    dotPlot(stats[i].state,     "plot3");
-                    dotPlot(stats[i + 1].state, "plot4");
-                    dotPlot(stats[i + 2].state, "plot5");
+                    dotPlot(stats[i - 2].state, stats[i - 2].slope, "plot1");
+                    dotPlot(stats[i - 1].state, stats[i - 1].slope, "plot2");
+                    dotPlot(stats[i].state,     stats[i].slope,     "plot3");
+                    dotPlot(stats[i + 1].state, stats[i + 1].slope, "plot4");
+                    dotPlot(stats[i + 2].state, stats[i + 2].slope, "plot5");
                     curState = i;
                 });
 
-                dotPlot(stats[0].state, "plot1");
-                dotPlot(stats[1].state, "plot2");
-                dotPlot(stats[2].state, "plot3");
-                dotPlot(stats[3].state, "plot4");
-                dotPlot(stats[4].state, "plot5");
+                dotPlot(stats[0].state, stats[0].slope, "plot1");
+                dotPlot(stats[1].state, stats[1].slope, "plot2");
+                dotPlot(stats[2].state, stats[2].slope, "plot3");
+                dotPlot(stats[3].state, stats[3].slope, "plot4");
+                dotPlot(stats[4].state, stats[4].slope, "plot5");
                 curState = 2;
 
-                note = '<font color="red"><b>Click along the line above to center the graphs below on the selected State and nearest statistical neighbors.</font></b><p>';
-                note = note + "States are ordered by the normalized slope of the trend line for their daily new positive cases. ";
-                note = note + "The y-axis shows the trend linear change in positive cases over the period divided by each State's cumulative number of all [pos + neg] tests over the period.<br>";
-                note = note + "The actual linear slope [daily rise/fall] appears as a tool tip.  No conclusions can be drawn about untested individuals, so State population is not relevant.<br>";
-                //delay showing the note until the graphs appear
-                document.getElementById("notes1").innerHTML = note;
-
+                //delay showing until the graphs appear
+                document.getElementById("all").style.display = "block";
             }
 
 
-            function dotPlot(state, plot) {
+            function dotPlot(state, slope, plot) {
                 xVals = [];
                 yVals = [];
+                slope = "slope: " + slope.toFixed(2)
                 var i = 0;
                 if ( states[state].length < hist_days ) {
                     hist_days = states[state].length;
@@ -144,7 +144,8 @@
                 var which = $.grep(stats, function(obj){return obj.state === state;});
                 trace2 = {
                     x: [xVals[0], xVals[xVals.length - 1]],
-                    y: [which[0].y_intercept, which[0].y_intercept + hist_days * which[0].slope],
+                    y: [which[0].y_intercept.toFixed(0), (which[0].y_intercept + hist_days * which[0].slope).toFixed(0)],
+                    text: [slope, slope],
                     mode: 'lines'
                 }
 
@@ -157,7 +158,7 @@
                     margin: {t:50, b:50, l:50, r:0},
 //                    autosize: false,
                     height: 200, 
-                    width: 300
+                    width: plotWidth
                 };
 
                 Plotly.newPlot(plot, data, layout);
@@ -182,28 +183,36 @@
                     if (curState > stats.length -3) {curState = stats.length -3}
                 }
                 i = curState;
-                dotPlot(stats[i - 2].state, "plot1");
-                dotPlot(stats[i - 1].state, "plot2");
-                dotPlot(stats[i].state,     "plot3");
-                dotPlot(stats[i + 1].state, "plot4");
-                dotPlot(stats[i + 2].state, "plot5");
+                    dotPlot(stats[i - 2].state, stats[i - 2].slope, "plot1");
+                    dotPlot(stats[i - 1].state, stats[i - 1].slope, "plot2");
+                    dotPlot(stats[i].state,     stats[i].slope,     "plot3");
+                    dotPlot(stats[i + 1].state, stats[i + 1].slope, "plot4");
+                    dotPlot(stats[i + 2].state, stats[i + 2].slope, "plot5");
             }
         </script>
     </head>
     <body>
-        Show <button id = "hist_days" onClick="setDays()">last 30 days</button>
-        <div id="rankOrder"></div><br>
-        <div id = "notes1"></div>
-        <table><tr>
-            <td><img src="LeftArrow.png" width="20" onClick="slider('left')"><br>Left 5</td>
-            <td><div id='plot1'></div>
-            <td><div id='plot2'></div>
-            <td><div id='plot3'></div>
-            <td><div id='plot4'></div>
-            <td><div id='plot5'></div>
-            <td><img src="RightArrow.png" width="20" onClick="slider('right')"><br>Right 5</td>
-            </tr></table>
-    <script>
-    </script>
+        <div id="all" style="display: none">
+            Show <button id = "hist_days" onClick="setDays()">last 30 days</button> 
+            <div id="rankOrder"></div><br>
+            <div id = "notes1">
+                <font color="red"><b>Click along the line above to center the graphs below on the selected State and nearest statistical neighbors.</b></font><p>
+                States are ordered by the normalized slope of the trend line for their daily new positive cases. 
+                The y-axis shows the trend linear change in positive cases over the period divided by each State's cumulative number of all [pos + neg] tests over the period.<br>
+                The actual linear slope [daily rise/fall] appears as a tool tip.  No conclusions can be drawn about untested individuals, so State population is not relevant.<br>
+                Note that the number of positive tests / day is strongly influenced by the number of all tests reported / day.
+            </div>
+            <table id="slider"><tr>
+                <td><img src="LeftArrow.png" width="20" onClick="slider('left')"><br>Left 5</td>
+                <td><div id='plot1'></div>
+                <td><div id='plot2'></div>
+                <td><div id='plot3'></div>
+                <td><div id='plot4'></div>
+                <td><div id='plot5'></div>
+                <td><img src="RightArrow.png" width="20" onClick="slider('right')"><br>Right 5</td>
+                </tr>
+            </table>
+            <p>Data shown are from: <a href="https://covidtracking.com">https://covidtracking.com</a></p>
+        </div>
     </body>
 </html>
