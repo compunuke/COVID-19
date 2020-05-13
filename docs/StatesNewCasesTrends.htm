@@ -14,7 +14,7 @@
             var width = plotWidth = 0;
             var hist_days = 14;
 
-//            data = $.getJSON("./daily.json", function (inFile) {
+//            data = $.getJSON("./daily.json").then (function (inFile) {
             data = $.getJSON("https://covidtracking.com/api/v1/states/daily.json").then (function (inFile) {
                 data = inFile;
                 data.forEach(obj => {
@@ -95,30 +95,30 @@
                         width: window.innerWidth
                     };
 
-                Plotly.newPlot('rankOrder', data, layout);
+                Plotly.newPlot('rankOrder', data, layout, {displayModeBar: false});
                 myPlot.on('plotly_click', function(){
                     state = arguments[0].points[0].x; //state value from upper chart that was clicked
                     i=0;
                     while (stats[i].state != state) {i++}; //find the state choice
                     if (i > stats.length - 3) {i = stats.length - 3}; //don't have two states to the right of choice
                     if (i < 2) {i = 2}; //put chosen state in the middle unless state was left most
-                    dotPlot(stats[i - 2].state, stats[i - 2].slope, "plot1");
-                    dotPlot(stats[i - 1].state, stats[i - 1].slope, "plot2");
-                    dotPlot(stats[i].state,     stats[i].slope,     "plot3");
-                    dotPlot(stats[i + 1].state, stats[i + 1].slope, "plot4");
-                    dotPlot(stats[i + 2].state, stats[i + 2].slope, "plot5");
                     curState = i;
+                    dotPlot5(i);
                 });
 
-                dotPlot(stats[0].state, stats[0].slope, "plot1");
-                dotPlot(stats[1].state, stats[1].slope, "plot2");
-                dotPlot(stats[2].state, stats[2].slope, "plot3");
-                dotPlot(stats[3].state, stats[3].slope, "plot4");
-                dotPlot(stats[4].state, stats[4].slope, "plot5");
+                dotPlot5(2);
                 curState = 2;
 
                 //delay showing until the graphs appear
                 document.getElementById("all").style.display = "block";
+            }
+
+            function dotPlot5(i) {
+                dotPlot(stats[i - 2].state, stats[i - 2].slope, "plot1");
+                dotPlot(stats[i - 1].state, stats[i - 1].slope, "plot2");
+                dotPlot(stats[i].state,     stats[i].slope,     "plot3");
+                dotPlot(stats[i + 1].state, stats[i + 1].slope, "plot4");
+                dotPlot(stats[i + 2].state, stats[i + 2].slope, "plot5");
             }
 
 
@@ -126,6 +126,7 @@
                 xVals = [];
                 yVals = [];
                 slope = "slope: " + slope.toFixed(2)
+                stateName = abbrevs[state];
                 var i = 0;
                 if ( states[state].length < hist_days ) {
                     hist_days = states[state].length;
@@ -156,7 +157,7 @@
 
                 layout = {
                     xaxis: {type: "category" },
-                    title: `${state}`,
+                    title: "<b>" + stateName + "</b>",
                     showlegend: false,
                     margin: {t:50, b:50, l:50, r:0},
 //                    autosize: false,
@@ -164,8 +165,9 @@
                     width: plotWidth
                 };
 
-                Plotly.newPlot(plot, data, layout);
+                Plotly.newPlot(plot, data, layout, {displayModeBar: false});
             }
+
             function setDays() {
                 if (document.getElementById("hist_days").innerText == "last 30 days") {
                     document.getElementById("hist_days").innerText = "last 14 days";
@@ -177,6 +179,7 @@
                     process( states );
                 };
             }
+
             function slider(dir) {
                 if (dir == "left") {
                     curState = curState - 5;
@@ -186,32 +189,29 @@
                     if (curState > stats.length -3) {curState = stats.length -3}
                 }
                 i = curState;
-                    dotPlot(stats[i - 2].state, stats[i - 2].slope, "plot1");
-                    dotPlot(stats[i - 1].state, stats[i - 1].slope, "plot2");
-                    dotPlot(stats[i].state,     stats[i].slope,     "plot3");
-                    dotPlot(stats[i + 1].state, stats[i + 1].slope, "plot4");
-                    dotPlot(stats[i + 2].state, stats[i + 2].slope, "plot5");
+                    dotPlot5(i);
             }
+
             function adjustGraphs() {
                 graph();
-                dotPlot(stats[curState - 2].state, stats[curState - 2].slope, "plot1");
-                dotPlot(stats[curState - 1].state, stats[curState - 1].slope, "plot2");
-                dotPlot(stats[curState].state, stats[curState].slope,         "plot3");
-                dotPlot(stats[curState + 1].state, stats[curState + 1].slope, "plot4");
-                dotPlot(stats[curState + 2].state, stats[curState + 2].slope, "plot5");
+                if (curState >= 2) {
+                    dotPlot5(curState);
+                } else {
+                    dotPlot5(2);
+                }
             }
         </script>
     </head>
     <body onresize="adjustGraphs()">
         <div id="all" style="display: none">
-            Show <button id = "hist_days" onClick="setDays()">last 30 days</button> 
+            Change to <button id = "hist_days" onClick="setDays()">last 30 days</button> 
             <div id="rankOrder"></div><br>
             <div id = "notes1">
                 <font color="red"><b>Click along the line above to center the graphs below on the selected State and nearest statistical neighbors.</b></font><p>
                 States are ordered by the normalized slope of the trend line for their daily new positive cases. 
-                The y-axis shows the trend linear change in positive cases over the period divided by each State's cumulative number of all [pos + neg] tests over the period.<br>
+                The y-axis shows the trend linear change in positive cases over the period, divided by each State's cumulative number of all [pos + neg] tests over the period.<br>
                 The actual linear slope [daily rise/fall] appears as a tool tip.  No conclusions can be drawn about untested individuals, so State population is not relevant.<br>
-                Note that the number of positive tests / day is strongly influenced by the number of all tests reported / day.
+                Note that the number of positive tests per day is strongly influenced by the number of all tests reported per day.  In other words, ramping up testing is likely to ramp up positive cases.
             </div>
             <table id="slider">
                 <tr><td colspan="7" style="text-align: center"><b>New Positive Tests / Day</b></td></tr>
