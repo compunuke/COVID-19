@@ -8,50 +8,69 @@
             var data = [];
             var newRow = [];
             var states = {};
+            var pops = {};
             var stats = [];
-            var abbrevs = { "AL": "Alabama", "AK": "Alaska", "AS": "American Samoa", "AZ": "Arizona", "AR": "Arkansas", "CA": "California", "CO": "Colorado", "CT": "Connecticut", "DE": "Delaware", "DC": "District Of Columbia", "FM": "Federated States Of Micronesia", "FL": "Florida", "GA": "Georgia", "GU": "Guam", "HI": "Hawaii", "ID": "Idaho", "IL": "Illinois", "IN": "Indiana", "IA": "Iowa", "KS": "Kansas", "KY": "Kentucky", "LA": "Louisiana", "ME": "Maine", "MH": "Marshall Islands", "MD": "Maryland", "MA": "Massachusetts", "MI": "Michigan", "MN": "Minnesota", "MS": "Mississippi", "MO": "Missouri", "MT": "Montana", "NE": "Nebraska", "NV": "Nevada", "NH": "New Hampshire", "NJ": "New Jersey", "NM": "New Mexico", "NY": "New York", "NC": "North Carolina", "ND": "North Dakota", "MP": "Northern Mariana Islands", "OH": "Ohio", "OK": "Oklahoma", "OR": "Oregon", "PW": "Palau", "PA": "Pennsylvania", "PR": "Puerto Rico", "RI": "Rhode Island", "SC": "South Carolina", "SD": "South Dakota", "TN": "Tennessee", "TX": "Texas", "UT": "Utah", "VT": "Vermont", "VI": "Virgin Islands", "VA": "Virginia", "VI": "Virgin Islands", "WA": "Washington", "WV": "West Virginia", "WI": "Wisconsin", "WY": "Wyoming"};
+            var abbrevs = { "AL": "Alabama", "AK": "Alaska", "AS": "American Samoa", "AZ": "Arizona", "AR": "Arkansas", "CA": "California", "CO": "Colorado", "CT": "Connecticut", "DE": "Delaware", "DC": "District of Columbia", "FM": "Federated States Of Micronesia", "FL": "Florida", "GA": "Georgia", "GU": "Guam", "HI": "Hawaii", "ID": "Idaho", "IL": "Illinois", "IN": "Indiana", "IA": "Iowa", "KS": "Kansas", "KY": "Kentucky", "LA": "Louisiana", "ME": "Maine", "MH": "Marshall Islands", "MD": "Maryland", "MA": "Massachusetts", "MI": "Michigan", "MN": "Minnesota", "MS": "Mississippi", "MO": "Missouri", "MT": "Montana", "NE": "Nebraska", "NV": "Nevada", "NH": "New Hampshire", "NJ": "New Jersey", "NM": "New Mexico", "NY": "New York", "NC": "North Carolina", "ND": "North Dakota", "MP": "Northern Mariana Islands", "OH": "Ohio", "OK": "Oklahoma", "OR": "Oregon", "PW": "Palau", "PA": "Pennsylvania", "PR": "Puerto Rico", "RI": "Rhode Island", "SC": "South Carolina", "SD": "South Dakota", "TN": "Tennessee", "TX": "Texas", "UT": "Utah", "VT": "Vermont", "VI": "Virgin Islands", "VA": "Virginia", "VI": "Virgin Islands", "WA": "Washington", "WV": "West Virginia", "WI": "Wisconsin", "WY": "Wyoming"};
             var sum_x = sum_x2 = sum_y = sum_xy = curState = 0;
             var width = plotWidth = 0;
             var hist_days = 14;
 
-//            data = $.getJSON("./daily.json").then (function (inFile) {
-            data = $.getJSON("https://covidtracking.com/api/v1/states/daily.json").then (function (inFile) {
-                data = inFile;
-                data.forEach(obj => {
-                    if (!['AS', 'GU', 'MH', 'MP', 'VI', 'PR'].includes(obj.state)) {
-                        if (!Object.keys(states).includes(obj.state)) {
-                            states[obj.state] = [];
-                        }
-                        newRow = [obj.date, obj.positiveIncrease, obj.totalTestResultsIncrease];
-                        states[obj.state].push(newRow);
+            function getJSON(fileName) {
+                var xobj = new XMLHttpRequest();
+                xobj.overrideMimeType("application/json");
+                xobj.open('GET', fileName, false);
+                xobj.send(null);  
+                json = JSON.parse(xobj.responseText);
+                return json;
+            }
+            
+            // get COVID Tracking Project Data
+//            json = getJSON('daily.json');
+            json = getJSON('https://covidtracking.com/api/v1/states/daily.json');
+            json.forEach(obj => {
+                if (!['AS', 'GU', 'MH', 'MP', 'VI', 'PR'].includes(obj.state)) {
+                    if (!Object.keys(states).includes(obj.state)) {
+                        states[obj.state] = [];
                     }
-                });
-                process( states );
+                    newRow = [obj.date, obj.positiveIncrease, obj.totalTestResultsIncrease, obj.deathIncrease];
+                    states[obj.state].push(newRow);
+                }
             });
 
+            //get Population data [web local, from 2018 data]
+            json = getJSON('States_Population_2018.json');
+            json.data.forEach(obj => {
+                stateID = obj.State;
+                stateName = Object.keys(abbrevs).find(key => abbrevs[key] === obj.State); 
+                pops[stateName] = obj.Population;
+            });
 
             function process( states ) {
                 stats = [];
                 Object.keys(states).forEach(state => {
                     if (states[state].length >= hist_days) {
-                        sum_x = sum_x2 = sum_y = sum_tri = sum_xy = 0;
+                        sum_x = sum_x2 = sum_y = sum_tri = sum_xy = sum_deaths = 0;
                         for (i =0; i < hist_days; i++) {
                             //get values for least squares calculation
                             //normalize each positiveIncrease to a percent of the range between smallest and largest
-                            y = states[state][hist_days - i - 1][1];
-                            tri = states[state][hist_days - i - 1][2];
+                            //include other aggregates as desired
+                            y = states[state][hist_days - i - 1][1]; //positive tests
+                            tri = states[state][hist_days - i - 1][2]; //test results increae
+                            deaths = states[state][hist_days - i - 1][3]; 
                             sum_tri = sum_tri + tri;
                             sum_y = sum_y + y;
                             sum_x = sum_x + hist_days - i - 1;
                             sum_x2 = sum_x2 + i**2;
                             sum_xy = sum_xy + i * y;
-//                            console.log (state, i, y, i**2, i * y);
+                            sum_deaths = sum_deaths + deaths; 
                         }
                         slope = ( hist_days * sum_xy - sum_x * sum_y ) / ( hist_days * sum_x2 - sum_x**2 );
                         y_intercept = ( sum_y - slope * sum_x ) / hist_days;
                         delta = hist_days * slope;
                         slope_pct = delta / sum_tri * 100;
-                        stats.push({"state": state, "slope": slope, "slope_pct": slope_pct, "y_intercept": y_intercept, "delta": delta, "sum_y": sum_y});
+                        pop = pops[state];
+                        stats.push({"state": state, "slope": slope, "slope_pct": slope_pct, "y_intercept": y_intercept, "delta": delta, 
+                                    "sum_y": sum_y, "sum_tri": sum_tri, "deaths": sum_deaths, "pop": pop});
 //                        console.log( state + "\t" + slope.toFixed(2) + "\t" + y_intercept.toFixed(2) + "\t" + delta.toFixed(2) + "\t" + sum_y.toFixed(0) + "\t" + slope_pct.toFixed(2) );
                     }
                 });
@@ -77,7 +96,7 @@
                 for (i = 0; i < stats.length; i++) {
                     xVals.push(stats[i].state);
                     yVals.push(stats[i].slope_pct);
-                    labels.push("slope: " + stats[i].slope.toFixed(2));
+                    labels.push("tests/day: " + parseInt(stats[i].sum_tri/hist_days).toLocaleString() + "<br>linear chg/day: " + stats[i].slope.toFixed(2));
                 };
 
                 trace1 = {
@@ -125,7 +144,8 @@
             function dotPlot(state, slope, plot) {
                 xVals = [];
                 yVals = [];
-                slope = "slope: " + slope.toFixed(2)
+                labels = [];
+                slope = "linear chg/day: " + slope.toFixed(2)
                 stateName = abbrevs[state];
                 var i = 0;
                 if ( states[state].length < hist_days ) {
@@ -135,6 +155,7 @@
                 for (i = 0; i < hist_days; i++) {
                     xVals.push(states[state][hist_days - i - 1][0].toString().substr(-4)); //date
                     yVals.push(states[state][hist_days - i - 1][1]); //pos cases
+                    labels.push("# tests : " + states[state][hist_days - i - 1][2].toLocaleString()); //tests/day
 //                    console.log(i,states[state][hist_days - i - 1][1]);
                 };
 //                console.log(xVals, yVals);
@@ -142,7 +163,8 @@
                 trace1 = {
                     x: xVals,
                     y: yVals,
-                    mode: 'markers'
+                    mode: 'markers',
+                    text: labels
                 };
 
                 var which = $.grep(stats, function(obj){return obj.state === state;});
@@ -202,10 +224,10 @@
             }
         </script>
     </head>
-    <body onresize="adjustGraphs()">
+    <body onload="process(states)" onresize="adjustGraphs()">
         <div id="all" style="display: none">
             Change to <button id = "hist_days" onClick="setDays()">last 30 days</button> 
-            <div id="rankOrder"></div><br>
+            <div id = "rankOrder"></div><br>
             <div id = "notes1">
                 <font color="red"><b>Click along the line above to center the graphs below on the selected State and nearest statistical neighbors.</b></font><p>
                 States are ordered by the normalized slope of the trend line for their daily new positive cases. 
@@ -225,7 +247,7 @@
                     <td><img src="RightArrow.png" width="20" onClick="slider('right')"><br>Right 5</td>
                 </tr>
             </table>
-            <p>Data shown are from: <a href="https://covidtracking.com">https://covidtracking.com</a></p>
+            <p>Data shown are from: <a href="https://covidtracking.com" target="_blank">https://covidtracking.com</a></p>
         </div>
     </body>
 </html>
