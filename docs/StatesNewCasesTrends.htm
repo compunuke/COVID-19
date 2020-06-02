@@ -5,15 +5,15 @@
         <script type="text/javascript" src="https://code.jquery.com/jquery-1.7.2.min.js"></script>
         <script src='https://cdn.plot.ly/plotly-latest.min.js'></script>
         <script>
+            const abbrevs = { "AL": "Alabama", "AK": "Alaska", "AS": "American Samoa", "AZ": "Arizona", "AR": "Arkansas", "CA": "California", "CO": "Colorado", "CT": "Connecticut", "DE": "Delaware", "DC": "District of Columbia", "FM": "Federated States Of Micronesia", "FL": "Florida", "GA": "Georgia", "GU": "Guam", "HI": "Hawaii", "ID": "Idaho", "IL": "Illinois", "IN": "Indiana", "IA": "Iowa", "KS": "Kansas", "KY": "Kentucky", "LA": "Louisiana", "ME": "Maine", "MH": "Marshall Islands", "MD": "Maryland", "MA": "Massachusetts", "MI": "Michigan", "MN": "Minnesota", "MS": "Mississippi", "MO": "Missouri", "MT": "Montana", "NE": "Nebraska", "NV": "Nevada", "NH": "New Hampshire", "NJ": "New Jersey", "NM": "New Mexico", "NY": "New York", "NC": "North Carolina", "ND": "North Dakota", "MP": "Northern Mariana Islands", "OH": "Ohio", "OK": "Oklahoma", "OR": "Oregon", "PW": "Palau", "PA": "Pennsylvania", "PR": "Puerto Rico", "RI": "Rhode Island", "SC": "South Carolina", "SD": "South Dakota", "TN": "Tennessee", "TX": "Texas", "UT": "Utah", "VT": "Vermont", "VI": "Virgin Islands", "VA": "Virginia", "VI": "Virgin Islands", "WA": "Washington", "WV": "West Virginia", "WI": "Wisconsin", "WY": "Wyoming"};
             var data = [];
             var newRow = [];
             var states = {};
             var pops = {};
             var stats = [];
-            var abbrevs = { "AL": "Alabama", "AK": "Alaska", "AS": "American Samoa", "AZ": "Arizona", "AR": "Arkansas", "CA": "California", "CO": "Colorado", "CT": "Connecticut", "DE": "Delaware", "DC": "District of Columbia", "FM": "Federated States Of Micronesia", "FL": "Florida", "GA": "Georgia", "GU": "Guam", "HI": "Hawaii", "ID": "Idaho", "IL": "Illinois", "IN": "Indiana", "IA": "Iowa", "KS": "Kansas", "KY": "Kentucky", "LA": "Louisiana", "ME": "Maine", "MH": "Marshall Islands", "MD": "Maryland", "MA": "Massachusetts", "MI": "Michigan", "MN": "Minnesota", "MS": "Mississippi", "MO": "Missouri", "MT": "Montana", "NE": "Nebraska", "NV": "Nevada", "NH": "New Hampshire", "NJ": "New Jersey", "NM": "New Mexico", "NY": "New York", "NC": "North Carolina", "ND": "North Dakota", "MP": "Northern Mariana Islands", "OH": "Ohio", "OK": "Oklahoma", "OR": "Oregon", "PW": "Palau", "PA": "Pennsylvania", "PR": "Puerto Rico", "RI": "Rhode Island", "SC": "South Carolina", "SD": "South Dakota", "TN": "Tennessee", "TX": "Texas", "UT": "Utah", "VT": "Vermont", "VI": "Virgin Islands", "VA": "Virginia", "VI": "Virgin Islands", "WA": "Washington", "WV": "West Virginia", "WI": "Wisconsin", "WY": "Wyoming"};
-            var sum_x = sum_x2 = sum_y = sum_xy = curState = 0;
             var width = plotWidth = 0;
             var hist_days = 14;
+            var measure = "cases";
 
             function getJSON(fileName) {
                 var xobj = new XMLHttpRequest();
@@ -25,7 +25,7 @@
             }
             
             // get COVID Tracking Project Data
-//            json = getJSON('daily.json');
+//            json = getJSON('daily.json'); //local file for testing
             json = getJSON('https://covidtracking.com/api/v1/states/daily.json');
             json.forEach(obj => {
                 if (!['AS', 'GU', 'MH', 'MP', 'VI', 'PR'].includes(obj.state)) {
@@ -37,7 +37,7 @@
                 }
             });
 
-            //get Population data [web local, from 2018 data]
+            //get Population data [web, static, local, from 2018 data]
             json = getJSON('States_Population_2018.json');
             json.data.forEach(obj => {
                 stateID = obj.State;
@@ -47,30 +47,37 @@
 
             function process( states ) {
                 stats = [];
+                var sum_x = sum_x2 = sum_y = sum_xy = curState = 0;
                 Object.keys(states).forEach(state => {
                     if (states[state].length >= hist_days) {
-                        sum_x = sum_x2 = sum_y = sum_tri = sum_xy = sum_deaths = 0;
+                        sum_x = sum_x2 = sum_y = sum_tri = sum_xy = 0;
                         for (i =0; i < hist_days; i++) {
-                            //get values for least squares calculation
-                            //normalize each positiveIncrease to a percent of the range between smallest and largest
+                            //get values for least squares fit calculation
+                            //normalize each positiveIncrease to a percent of the range between smallest and largest, i.e., the delta
                             //include other aggregates as desired
-                            y = states[state][hist_days - i - 1][1]; //positive tests
-                            tri = states[state][hist_days - i - 1][2]; //test results increae
-                            deaths = states[state][hist_days - i - 1][3]; 
-                            sum_tri = sum_tri + tri;
+                            if (measure == 'cases') {
+                                y = states[state][hist_days - i - 1][1]; //positive tests
+                                tri = states[state][hist_days - i - 1][2]; //test results increae
+                            } else {
+                                y = states[state][hist_days - i - 1][3]; //deaths
+                            }
+                            sum_tri = sum_tri + tri; //just summing zeros for death count
                             sum_y = sum_y + y;
                             sum_x = sum_x + hist_days - i - 1;
                             sum_x2 = sum_x2 + i**2;
                             sum_xy = sum_xy + i * y;
-                            sum_deaths = sum_deaths + deaths; 
                         }
                         slope = ( hist_days * sum_xy - sum_x * sum_y ) / ( hist_days * sum_x2 - sum_x**2 );
                         y_intercept = ( sum_y - slope * sum_x ) / hist_days;
                         delta = hist_days * slope;
-                        slope_pct = delta / sum_tri * 100;
-                        pop = pops[state];
+                        popM = pops[state] / 1000000;
+                        if (measure == "cases") {
+                            slope_pct = delta / sum_tri * 100;
+                        } else {
+                            slope_pct = delta / pops[state] * 100000;
+                        }
                         stats.push({"state": state, "slope": slope, "slope_pct": slope_pct, "y_intercept": y_intercept, "delta": delta, 
-                                    "sum_y": sum_y, "sum_tri": sum_tri, "deaths": sum_deaths, "pop": pop});
+                                    "sum_y": sum_y, "sum_tri": sum_tri, "popM": popM});
 //                        console.log( state + "\t" + slope.toFixed(2) + "\t" + y_intercept.toFixed(2) + "\t" + delta.toFixed(2) + "\t" + sum_y.toFixed(0) + "\t" + slope_pct.toFixed(2) );
                     }
                 });
@@ -95,8 +102,13 @@
 
                 for (i = 0; i < stats.length; i++) {
                     xVals.push(stats[i].state);
-                    yVals.push(stats[i].slope_pct);
-                    labels.push("tests/day: " + parseInt(stats[i].sum_tri/hist_days).toLocaleString() + "<br>linear chg/day: " + stats[i].slope.toFixed(2));
+                    if (measure == "cases") {
+                        yVals.push(stats[i].slope_pct); 
+                        labels.push("tests/day: " + parseInt(stats[i].sum_tri/hist_days).toLocaleString() + "<br>linear chg/day: " + stats[i].slope.toFixed(2));
+                    } else {
+                        yVals.push(stats[i].slope_pct); 
+                        labels.push("Deaths this period: " + parseInt(stats[i].sum_y).toLocaleString() + "<br>State pop millions: " + stats[i].popM.toFixed(2));
+                    }
                 };
 
                 trace1 = {
@@ -105,13 +117,24 @@
                     text: labels,
                     mode: 'lines'
                 };
+
+                if (measure == "cases") {
+                    title = "United States' \"Least Squares Fit\" Trends,<br>Best Decline to Worst Growth of New Daily Positive Cases";
+                    ytitle = "%pos / all tests";
+                } else {
+                    title = "United States' \"Least Squares Fit\" Trends,<br>Best Decline to Worst Growth of New Daily Death Rates";
+                    ytitle = "deaths +/- trend %";
+                };
                 var myPlot = document.getElementById('rankOrder'),
                     data = [ trace1 ],
                     layout = {
-                        title:"United States' \"Least Squares Fit\" Trends,<br>Best Decline to Worst Growth of New Daily Positive Cases",
+                        title: title,
                         margin: {t:50, b:50, l:50},
                         height: 200,
-                        width: window.innerWidth
+                        width: window.innerWidth,
+                        yaxis: {
+                            title: ytitle
+                        }
                     };
 
                 Plotly.newPlot('rankOrder', data, layout, {displayModeBar: false});
@@ -151,14 +174,15 @@
                 if ( states[state].length < hist_days ) {
                     hist_days = states[state].length;
                 }
-//                for (i = hist_days - 1; i >= 0; i--) {
                 for (i = 0; i < hist_days; i++) {
                     xVals.push(states[state][hist_days - i - 1][0].toString().substr(-4)); //date
-                    yVals.push(states[state][hist_days - i - 1][1]); //pos cases
-                    labels.push("# tests : " + states[state][hist_days - i - 1][2].toLocaleString()); //tests/day
-//                    console.log(i,states[state][hist_days - i - 1][1]);
+                    if (measure == "cases") {
+                        yVals.push(states[state][hist_days - i - 1][1]); //pos cases
+                        labels.push("# tests : " + states[state][hist_days - i - 1][2].toLocaleString()); //tests/day
+                    } else {
+                        yVals.push(states[state][hist_days - i - 1][3]); //deaths
+                    }
                 };
-//                console.log(xVals, yVals);
 
                 trace1 = {
                     x: xVals,
@@ -177,6 +201,13 @@
 
                 data = [ trace1, trace2 ];
 
+                if (measure == "cases") {
+//                    title = "United States' \"Least Squares Fit\" Trends,<br>Best Decline to Worst Growth of New Daily Positive Cases";
+                    ytitle = "pos tests/ day";
+                } else {
+//                    title = "United States' \"Least Squares Fit\" Trends,<br>Best Decline to Worst Growth of New Daily Death Rates";
+                    ytitle = "deaths / day";
+                };
                 layout = {
                     xaxis: {type: "category" },
                     title: "<b>" + stateName + "</b>",
@@ -184,7 +215,10 @@
                     margin: {t:50, b:50, l:50, r:0},
 //                    autosize: false,
                     height: 200, 
-                    width: plotWidth
+                    width: plotWidth,
+                    yaxis: {
+                        title: ytitle
+                    }
                 };
 
                 Plotly.newPlot(plot, data, layout, {displayModeBar: false});
@@ -198,6 +232,24 @@
                 } else {
                     document.getElementById("hist_days").innerText = "last 30 days";
                     hist_days = 14;
+                    process( states );
+                };
+            }
+
+            function setMeasure() {
+                if (document.getElementById("measure").innerText == "death rate") {
+                    document.getElementById("measure").innerText = "case counts";
+                    document.getElementById("chartsTitle").innerText = "Daily COVID-19 Deaths Reported";
+                    document.getElementById("notes1").style.display = "none";
+                    document.getElementById("notes2").style.display = "block";
+                    measure = "deaths";
+                    process( states );
+                } else {
+                    document.getElementById("measure").innerText = "death rate";
+                    document.getElementById("chartsTitle").innerText = "New Positive Tests / Day";
+                    document.getElementById("notes1").style.display = "block";
+                    document.getElementById("notes2").style.display = "none";
+                    measure = "cases";
                     process( states );
                 };
             }
@@ -226,17 +278,24 @@
     </head>
     <body onload="process(states)" onresize="adjustGraphs()">
         <div id="all" style="display: none">
+            Change to <button id = "measure" onClick="setMeasure()">death rate</button> 
             Change to <button id = "hist_days" onClick="setDays()">last 30 days</button> 
             <div id = "rankOrder"></div><br>
-            <div id = "notes1">
+            <div id = "notes1" style="display: block">
                 <font color="red"><b>Click along the line above to center the graphs below on the selected State and nearest statistical neighbors.</b></font><p>
                 States are ordered by the normalized slope of the trend line for their daily new positive cases. 
                 The y-axis shows the trend linear change in positive cases over the period, divided by each State's cumulative number of all [pos + neg] tests over the period.<br>
                 The actual linear slope [daily rise/fall] appears as a tool tip.  No conclusions can be drawn about untested individuals, so State population is not relevant.<br>
                 Note that the number of positive tests per day is strongly influenced by the number of all tests reported per day.  In other words, ramping up testing is likely to ramp up positive cases.
             </div>
+            <div id = "notes2" style="display: none">
+                <font color="red"><b>Click along the line above to center the graphs below on the selected State and nearest statistical neighbors.</b></font><p>
+                States are ordered by the sum of deaths over the period divided by the State population [2018 census data]. <br>
+                The y-axis shows the trend line percent decrease or increase in death rate per thousand in the State over the period.<br>
+                The actual death count over the period chosen and State population appears as a tool tip. <br>
+            </div>
             <table id="slider">
-                <tr><td colspan="7" style="text-align: center"><b>New Positive Tests / Day</b></td></tr>
+                <tr><td colspan="7" style="text-align: center"><b><span id="chartsTitle">New Positive Tests / Day</span></b></td></tr>
                 <tr>
                     <td><img src="LeftArrow.png" width="20" onClick="slider('left')"><br>Left 5</td>
                     <td><div id='plot1'></div>
