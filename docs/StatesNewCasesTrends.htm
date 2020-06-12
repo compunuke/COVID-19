@@ -167,6 +167,7 @@
             function dotPlot(state, slope, plot) {
                 xVals = [];
                 yVals = [];
+                yVals2 = [];
                 labels = [];
                 slope = "linear chg/day: " + slope.toFixed(2)
                 stateName = abbrevs[state];
@@ -178,7 +179,8 @@
                     xVals.push(states[state][hist_days - i - 1][0].toString().substr(-4)); //date
                     if (measure == "cases") {
                         yVals.push(states[state][hist_days - i - 1][1]); //pos cases
-                        labels.push("# tests : " + states[state][hist_days - i - 1][2].toLocaleString()); //tests/day
+                        yVals2.push(states[state][hist_days - i - 1][2]); //tests/day
+//                        labels.push("# tests : " + states[state][hist_days - i - 1][2].toLocaleString()); //tests/day
                     } else {
                         yVals.push(states[state][hist_days - i - 1][3]); //deaths
                     }
@@ -187,38 +189,50 @@
                 trace1 = {
                     x: xVals,
                     y: yVals,
-                    mode: 'markers',
-                    text: labels
+                    mode: 'markers'
                 };
 
-                var which = $.grep(stats, function(obj){return obj.state === state;});
                 trace2 = {
+                    x: xVals,
+                    y: yVals2,
+                    name: 'total',
+                    yaxis: 'y2',
+                    mode: 'markers',
+                    marker: {symbol: 'triangle-up', color: 'rgb(255, 200, 200)'}
+                };
+
+                //get stats for the state being processed for this graph
+                var which = $.grep(stats, function(obj){return obj.state === state;});
+                trace3 = {
                     x: [xVals[0], xVals[xVals.length - 1]],
                     y: [which[0].y_intercept.toFixed(0), (which[0].y_intercept + hist_days * which[0].slope).toFixed(0)],
+                    name: 'trend',
                     text: [slope, slope],
-                    mode: 'lines'
+                    mode: 'lines',
+                    line: {color: 'rgb(255,0,0)'}
                 }
 
-                data = [ trace1, trace2 ];
-
-                if (measure == "cases") {
-//                    title = "United States' \"Least Squares Fit\" Trends,<br>Best Decline to Worst Growth of New Daily Positive Cases";
-                    ytitle = "pos tests/ day";
-                } else {
-//                    title = "United States' \"Least Squares Fit\" Trends,<br>Best Decline to Worst Growth of New Daily Death Rates";
-                    ytitle = "deaths / day";
-                };
                 layout = {
                     xaxis: {type: "category" },
                     title: "<b>" + stateName + "</b>",
-                    showlegend: false,
-                    margin: {t:50, b:50, l:50, r:0},
+                    showlegend: true,
+                    legend: {x: 0, y: -0.6, yanchor: 'bottom', orientation: 'h'},
+                    margin: {t:50, b:50, l:50, r:50},
 //                    autosize: false,
-                    height: 200, 
-                    width: plotWidth,
-                    yaxis: {
-                        title: ytitle
-                    }
+                    height: 250, 
+                    width: plotWidth
+                };
+                if (measure == "cases") {
+//                    title = "United States' \"Least Squares Fit\" Trends,<br>Best Decline to Worst Growth of New Daily Positive Cases";
+                    layout.yaxis = {title: "pos tests / day"};
+                    layout.yaxis2 = {overlaying: 'y', side: 'right'};
+                    trace1.name = 'pos';
+                    data = [ trace1, trace2, trace3 ];
+                } else {
+//                    title = "United States' \"Least Squares Fit\" Trends,<br>Best Decline to Worst Growth of New Daily Death Rates";
+                    layout.yaxis = {title: "deaths / day"};
+                    trace1.name = 'deaths';
+                    data = [ trace1, trace3 ];
                 };
 
                 Plotly.newPlot(plot, data, layout, {displayModeBar: false});
@@ -239,14 +253,14 @@
             function setMeasure() {
                 if (document.getElementById("measure").innerText == "death rate") {
                     document.getElementById("measure").innerText = "case counts";
-                    document.getElementById("chartsTitle").innerText = "Daily COVID-19 Deaths Reported";
+                    document.getElementById("chartsTitle").innerHTML = "<b>Daily COVID-19 Deaths Reported</b>";
                     document.getElementById("notes1").style.display = "none";
                     document.getElementById("notes2").style.display = "block";
                     measure = "deaths";
                     process( states );
                 } else {
                     document.getElementById("measure").innerText = "death rate";
-                    document.getElementById("chartsTitle").innerText = "New Positive Tests / Day";
+                    document.getElementById("chartsTitle").innerHTML = "<b>New Positive Tests / Day</b><br>[Total tests/day, right axis]";
                     document.getElementById("notes1").style.display = "block";
                     document.getElementById("notes2").style.display = "none";
                     measure = "cases";
@@ -295,7 +309,7 @@
                 The actual death count over the period chosen and State population appears as a tool tip. <br>
             </div>
             <table id="slider">
-                <tr><td colspan="7" style="text-align: center"><b><span id="chartsTitle">New Positive Tests / Day</span></b></td></tr>
+                <tr><td colspan="7" style="text-align: center"><span id="chartsTitle"><b>New Positive Tests / Day</b><br>[Total tests/day, right axis]</span></td></tr>
                 <tr>
                     <td><img src="LeftArrow.png" width="20" onClick="slider('left')"><br>Left 5</td>
                     <td><div id='plot1'></div>
