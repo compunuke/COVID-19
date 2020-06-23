@@ -179,8 +179,7 @@
                     xVals.push(states[state][hist_days - i - 1][0].toString().substr(-4)); //date
                     if (measure == "cases") {
                         yVals.push(states[state][hist_days - i - 1][1]); //pos cases
-                        yVals2.push(states[state][hist_days - i - 1][2]); //tests/day
-//                        labels.push("# tests : " + states[state][hist_days - i - 1][2].toLocaleString()); //tests/day
+                        yVals2.push(states[state][hist_days - i - 1][1] / states[state][hist_days - i - 1][2] * 100); //positivity rate %
                     } else {
                         yVals.push(states[state][hist_days - i - 1][3]); //deaths
                     }
@@ -195,10 +194,10 @@
                 trace2 = {
                     x: xVals,
                     y: yVals2,
-                    name: 'total',
+                    name: 'pos %',
                     yaxis: 'y2',
                     mode: 'markers',
-                    marker: {symbol: 'triangle-up', color: 'rgb(255, 200, 200)'}
+                    marker: {symbol: 'triangle-up', color: 'rgb(255, 100, 100)'}
                 };
 
                 //get stats for the state being processed for this graph
@@ -260,7 +259,7 @@
                     process( states );
                 } else {
                     document.getElementById("measure").innerText = "death rate";
-                    document.getElementById("chartsTitle").innerHTML = "<b>New Positive Tests / Day</b><br>[Total tests/day, right axis]";
+                    document.getElementById("chartsTitle").innerHTML = "<b>New Positive Tests / Day</b><br>[Positivity Rate %, right axis]";
                     document.getElementById("notes1").style.display = "block";
                     document.getElementById("notes2").style.display = "none";
                     measure = "cases";
@@ -309,7 +308,7 @@
                 The actual death count over the period chosen and State population appears as a tool tip. <br>
             </div>
             <table id="slider">
-                <tr><td colspan="7" style="text-align: center"><span id="chartsTitle"><b>New Positive Tests / Day</b><br>[Total tests/day, right axis]</span></td></tr>
+                <tr><td colspan="7" style="text-align: center"><span id="chartsTitle"><b>New Positive Tests / Day</b><br>[Positivity Rate %, right axis]</span></td></tr>
                 <tr>
                     <td><img src="LeftArrow.png" width="20" onClick="slider('left')"><br>Left 5</td>
                     <td><div id='plot1'></div>
