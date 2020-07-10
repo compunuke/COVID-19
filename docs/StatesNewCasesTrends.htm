@@ -98,7 +98,7 @@
                 if (plotWidth < 150) {plotWidth = 150}; // set min plot width
 
                 //sort states by slope_pct, lowest to highest slope
-                stats.sort(function(a, b){return a.slope_pct - b.slope_pct});
+                stats.sort(function(a, b){return b.slope_pct - a.slope_pct});
 
                 for (i = 0; i < stats.length; i++) {
                     xVals.push(stats[i].state);
@@ -119,10 +119,10 @@
                 };
 
                 if (measure == "cases") {
-                    title = "United States' \"Least Squares Fit\" Trends,<br>Best Decline to Worst Growth of New Daily Positive Cases";
+                    title = "United States' \"Least Squares Fit\" Trends,<br>Worst Growth to Best Decline in New Daily Positive Cases";
                     ytitle = "%pos / all tests";
                 } else {
-                    title = "United States' \"Least Squares Fit\" Trends,<br>Best Decline to Worst Growth of New Daily Death Rates";
+                    title = "United States' \"Least Squares Fit\" Trends,<br>Worst Growth to Best Decline in New Daily Death Rates";
                     ytitle = "deaths +/- trend %";
                 };
                 var myPlot = document.getElementById('rankOrder'),
@@ -222,13 +222,13 @@
                     width: plotWidth
                 };
                 if (measure == "cases") {
-//                    title = "United States' \"Least Squares Fit\" Trends,<br>Best Decline to Worst Growth of New Daily Positive Cases";
+//                    title = "United States' \"Least Squares Fit\" Trends,<br>Worst Growth to Best Decline in New Daily Positive Cases";
                     layout.yaxis = {title: "pos tests / day"};
                     layout.yaxis2 = {overlaying: 'y', side: 'right'};
                     trace1.name = 'pos';
                     data = [ trace1, trace2, trace3 ];
                 } else {
-//                    title = "United States' \"Least Squares Fit\" Trends,<br>Best Decline to Worst Growth of New Daily Death Rates";
+//                    title = "United States' \"Least Squares Fit\" Trends,<br>Worst Growth to Best Decline in New Daily Death Rates";
                     layout.yaxis = {title: "deaths / day"};
                     trace1.name = 'deaths';
                     data = [ trace1, trace3 ];
@@ -293,7 +293,7 @@
         <div id="all" style="display: none">
             Change to <button id = "measure" onClick="setMeasure()">death rate</button> 
             Change to <button id = "hist_days" onClick="setDays()">last 30 days</button> 
-            <div id = "rankOrder"></div><br>
+            <div id = "rankOrder"></div>
             <div id = "notes1" style="display: block">
                 <font color="red"><b>Click along the line above to center the graphs below on the selected State and nearest statistical neighbors.</b></font><p>
                 States are ordered by the normalized slope of the trend line for their daily new positive cases. 
