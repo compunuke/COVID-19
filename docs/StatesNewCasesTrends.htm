@@ -26,7 +26,8 @@
             
             // get COVID Tracking Project Data
 //            json = getJSON('daily.json'); //local file for testing
-            json = getJSON('https://covidtracking.com/api/v1/states/daily.json');
+            json = getJSON('https://api.covidtracking.com/v1/states/daily.json');
+            
             json.forEach(obj => {
                 if (!['AS', 'GU', 'MH', 'MP', 'VI', 'PR'].includes(obj.state)) {
                     if (!Object.keys(states).includes(obj.state)) {
